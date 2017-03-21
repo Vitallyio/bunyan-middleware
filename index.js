@@ -13,16 +13,17 @@ module.exports = function (options, logger) {
     throw new Error('`logger` is required')
   }
 
-  var headerName = options.headerName || 'X-Request-Id'
-    , headerNameLower = headerName.toLowerCase()
-    , propertyName = options.propertyName || 'reqId'
-    , additionalRequestFinishData = options.additionalRequestFinishData
-    , logName = options.logName || 'req_id'
-    , obscureHeaders = options.obscureHeaders
-    , requestStart = options.requestStart || false
-    , verbose = options.verbose || false
-    , parentRequestSerializer = logger.serializers && logger.serializers.req
-    , level = options.level || 'info'
+  let headerName = options.headerName || 'X-Request-Id';
+  let headerNameLower = headerName.toLowerCase();
+  let propertyName = options.propertyName || 'reqId';
+  let additionalRequestFinishData = options.additionalRequestFinishData;
+  let logName = options.logName || 'req_id';
+  let obscureHeaders = options.obscureHeaders;
+  let requestStart = options.requestStart || false;
+  let verbose = options.verbose || false;
+  let parentRequestSerializer = logger.serializers && logger.serializers.req;
+  let level = options.level || 'info';
+  let obscureBody = options.obscureBody || ['password'];
 
   if (obscureHeaders && obscureHeaders.length) {
     obscureHeaders = obscureHeaders.map(function (name) {
@@ -32,32 +33,37 @@ module.exports = function (options, logger) {
     obscureHeaders = false
   }
 
+  function obscure(obj, keys) {
+    var obscuredObj = {};
+    Object.keys(obj).forEach(function(name) {
+      obscuredObj[name] = keys.includes(name) ? 'FILTERED' : obj[name];
+    })
+
+    return obscuredObj;
+  }
+
   function requestSerializer(req) {
     var obj
     if (parentRequestSerializer) {
       obj = parentRequestSerializer(req)
     } else {
-      obj =
-        { method: req.method
-        , url: req.originalUrl || req.url
-        , headers: req.headers
-        , query: req.query
-        , remoteAddress: req.connection.remoteAddress
-        , remotePort: req.connection.remotePort
-        }
+      obj = {
+        method: req.method, 
+        url: req.originalUrl || req.url,
+        headers: req.headers, 
+        query: req.query,
+        remoteAddress: req.connection.remoteAddress,
+        remotePort: req.connection.remotePort,
+        body: req.body
+      }
     }
 
     if (obscureHeaders && obj.headers) {
-      var headers = {}
-      Object.keys(obj.headers).forEach(function(name) {
-        headers[name] = obj.headers[name]
-      })
+      obj.headers = obscure(obj.headers, obscureHeaders);
+    }
 
-      for (var i = 0; i < obscureHeaders.length; i++) {
-        headers[ obscureHeaders[i] ] = null
-      }
-
-      obj.headers = headers
+    if (obscureBody && obj.body) {
+      obj.body = obscure(obj.body, obscureBody);
     }
 
     return obj
