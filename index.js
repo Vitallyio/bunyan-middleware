@@ -1,4 +1,4 @@
-var uuid = require('uuid').v1
+var uuid = require('uuid');
 
 module.exports = function (options, logger) {
   options = options || {}
@@ -80,7 +80,7 @@ module.exports = function (options, logger) {
   return function (req, res, next) {
     var id = req[propertyName]
           || req.headers[headerNameLower]
-          || uuid()
+          || uuid.v4()
 
     var start = process.hrtime()
 
